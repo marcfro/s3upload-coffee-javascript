@@ -7,6 +7,7 @@
 class window.S3Upload
 	s3_object_name: 'default_name' # setting an object name is not recommended on the client side, override or namespace on server side
 	s3_sign_put_url: '/signS3put'
+	s3_canned_acl: 'public-read'
 	file_dom_selector: 'file_upload'
 
 	onFinishS3Put: (public_url) ->
@@ -45,7 +46,7 @@ class window.S3Upload
 		this_s3upload = this
 
 		xhr = new XMLHttpRequest()
-		xhr.open 'GET', @s3_sign_put_url + '?s3_object_type=' + file.type + '&s3_object_name=' + @s3_object_name, true
+		xhr.open 'GET', @s3_sign_put_url + '?s3_object_type=' + file.type + '&s3_object_name=' + @s3_object_name + '&s3_canned_acl=' + @s3_canned_acl, true
 
 		# Hack to pass bytes through unprocessed.
 		xhr.overrideMimeType 'text/plain; charset=x-user-defined'
@@ -87,7 +88,7 @@ class window.S3Upload
 					this_s3upload.onProgress percentLoaded, if percentLoaded == 100 then 'Finalizing.' else 'Uploading.'
 
 		xhr.setRequestHeader 'Content-Type', file.type
-		xhr.setRequestHeader 'x-amz-acl', 'public-read'
+		xhr.setRequestHeader 'x-amz-acl', this_s3upload.s3_canned_acl
 
 		xhr.send file
 
