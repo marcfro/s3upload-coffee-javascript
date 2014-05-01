@@ -5,7 +5,6 @@
 # https://github.com/carsonmcdonald/direct-browser-s3-upload-example
 
 class window.S3Upload
-	s3_object_name: 'default_name' # setting an object name is not recommended on the client side, override or namespace on server side
 	s3_sign_put_url: '/signS3put'
 	s3_canned_acl: 'public-read'
 	file_dom_selector: 'file_upload'
@@ -46,7 +45,7 @@ class window.S3Upload
 		this_s3upload = this
 
 		xhr = new XMLHttpRequest()
-		xhr.open 'GET', @s3_sign_put_url + '?s3_object_type=' + file.type + '&s3_object_name=' + @s3_object_name + '&s3_canned_acl=' + @s3_canned_acl, true
+		xhr.open 'GET', @s3_sign_put_url + '?s3_object_type=' + file.type + '&object_file_ending=' + file.name.substr(-4) + '&s3_canned_acl=' + @s3_canned_acl, true
 
 		# Hack to pass bytes through unprocessed.
 		xhr.overrideMimeType 'text/plain; charset=x-user-defined'
@@ -58,14 +57,14 @@ class window.S3Upload
 				catch error
 					this_s3upload.onError 'Signing server returned some ugly/empty JSON: "' + this.responseText + '"'
 					return false
-				callback decodeURIComponent(result.signed_request), result.url
+				callback decodeURIComponent(result.signed_request), result.url, result.s3_object_name
 			else if this.readyState == 4 and this.status != 200
 				this_s3upload.onError 'Could not contact request signing server. Status = ' + this.status
 		xhr.send()
 
 	# Use a CORS call to upload the given file to S3. Assumes the url
 	# parameter has been signed and is accessible for upload.
-	uploadToS3: (file, url, public_url) ->
+	uploadToS3: (file, url, public_url, s3_object_name) ->
 		this_s3upload = this
 
 		xhr = @createCORSRequest 'PUT', url
@@ -75,7 +74,7 @@ class window.S3Upload
 			xhr.onload = ->
 				if xhr.status == 200
 					this_s3upload.onProgress 100, 'Upload completed.'
-					this_s3upload.onFinishS3Put public_url
+					this_s3upload.onFinishS3Put file.name, public_url, s3_object_name
 				else
 					this_s3upload.onError 'Upload error: ' + xhr.status
 
@@ -94,5 +93,5 @@ class window.S3Upload
 
 	uploadFile: (file) ->
 		this_s3upload = this
-		@executeOnSignedUrl file, (signedURL, publicURL) ->
-			this_s3upload.uploadToS3 file, signedURL, publicURL
+		@executeOnSignedUrl file, (signedURL, publicURL, s3_object_name) ->
+			this_s3upload.uploadToS3 file, signedURL, publicURL, s3_object_name
